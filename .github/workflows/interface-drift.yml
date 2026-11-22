@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '17 2 * * *'
   push:
-    branches: [main, feat/traditional-chinese-settings]
+    branches: [main, chore/community-interface-check, feat/traditional-chinese-settings]
 
 permissions: {}
 jobs:
@@ -23,4 +23,4 @@ jobs:
         run: |
           python3 Tests/test_interface_drift.py
           base=$(git merge-base refs/remotes/upstream/main refs/remotes/fork/translation)
-          python3 Tests/interface_drift.py "$base" refs/remotes/upstream/main refs/remotes/fork/translation
+          python3 Tests/interface_drift.py --summary "$GITHUB_STEP_SUMMARY" "$base" refs/remotes/upstream/main refs/remotes/fork/translation

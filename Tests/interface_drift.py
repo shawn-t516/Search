@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Replay static Settings copy against a fork's Traditional Chinese catalog on macOS."""
 import argparse
+import html
 import json
 import subprocess
 import sys
@@ -75,21 +76,84 @@ def compare(before, after, translations):
     return changes, missing
 
 
+def _cell(value):
+    if value is None:
+        return "—"
+    # Keep upstream copy literal in the Markdown table, including link syntax.
+    escaped = html.escape(value).translate({ord(char): f"&#{ord(char)};" for char in r"\|`[]*_~"})
+    return "<br>".join(escaped.splitlines())
+
+
+def render_summary(report):
+    refs = report["revisions"]
+    changes = report["changes"]
+    missing = sorted(report["missing"].items())
+    unique_missing = len({text for _, text in missing})
+    status = (
+        f"Missing translations: {len(missing)} locations ({unique_missing} unique English strings) — manual review required"
+        if missing
+        else "All checked Settings fields have catalog entries (0 missing)"
+    )
+    lines = [
+        "## Traditional Chinese Settings Copy Drift",
+        "",
+        f"**Status:** {status}",
+        "",
+        "| Field | Value |",
+        "| --- | --- |",
+        f"| Base | `{refs['base']}` |",
+        f"| Head | `{refs['head']}` |",
+        f"| Catalog | `{refs['catalog']}` |",
+        f"| Coverage | {_cell(report['coverage'])} |",
+        f"| Fields (base -> head) | {report['base_fields']} -> {report['head_fields']} |",
+        f"| Catalog keys | {report['catalog_keys']} |",
+        f"| Source changes | {len(changes)} |",
+        f"| Missing translations | {len(missing)} ({unique_missing} unique) |",
+        "",
+        "### Missing Translations (Pending Manual Review)",
+        "",
+    ]
+    if missing:
+        lines.extend(["| Location | English |", "| --- | --- |"])
+        for location, text in missing:
+            lines.append(f"| {_cell(location)} | {_cell(text)} |")
+    else:
+        lines.append("None.")
+    lines.extend(["", "### Source Copy Changes (Base -> Head)", ""])
+    if changes:
+        lines.extend(["| Kind | Location | Before | After |", "| --- | --- | --- | --- |"])
+        for change in changes:
+            lines.append(
+                f"| {_cell(change['kind'])} | {_cell(change['location'])} "
+                f"| {_cell(change['before'])} | {_cell(change['after'])} |"
+            )
+    else:
+        lines.append("None.")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def main():
     cli = argparse.ArgumentParser(description=__doc__)
+    cli.add_argument("--summary", help="write Markdown report to this file")
     for arg in ("base", "head", "catalog"):
         cli.add_argument(arg, help="local Git revision")
     args = cli.parse_args()
     refs = {name: output("git", "rev-parse", "--verify", "--end-of-options",
-                         rev + "^{commit}").decode().strip() for name, rev in vars(args).items()}
+                         getattr(args, name) + "^{commit}").decode().strip()
+            for name in ("base", "head", "catalog")}
     before, after = (snapshot(output("git", "show", refs[name] + ":" + INDEX))
                      for name in ("base", "head"))
     catalog = output("git", "show", refs["catalog"] + ":" + CATALOG)
     translations = json.loads(output("plutil", "-convert", "json", "-o", "-", "--", "-", data=catalog))
     changes, missing = compare(before, after, translations)
-    print(json.dumps(dict(revisions=refs, coverage="SettingsIndex static nonempty group and item copy",
-                          base_fields=len(before), head_fields=len(after), catalog_keys=len(translations),
-                          changes=changes, missing=missing), indent=2, ensure_ascii=False))
+    report = dict(revisions=refs, coverage="SettingsIndex static nonempty group and item copy",
+                  base_fields=len(before), head_fields=len(after), catalog_keys=len(translations),
+                  changes=changes, missing=missing)
+    print(json.dumps(report, indent=2, ensure_ascii=False))
+    if args.summary:
+        with open(args.summary, "a", encoding="utf-8") as handle:
+            handle.write(render_summary(report))
     return 1 if missing else 0
 
 
