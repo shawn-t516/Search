@@ -1,0 +1,26 @@
+name: Check Traditional Chinese Settings copy
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 2 * * *'
+  push:
+    branches: [main, feat/traditional-chinese-settings]
+
+permissions: {}
+jobs:
+  check:
+    if: github.repository == 'shawn-t516/Search'
+    runs-on: xcode-27
+    timeout-minutes: 10
+    steps:
+      - name: Read the public fork and upstream revisions
+        run: |
+          git init --quiet
+          git fetch --no-tags https://github.com/shawn-t516/Search.git "$GITHUB_SHA" refs/heads/feat/traditional-chinese-settings:refs/remotes/fork/translation
+          git checkout --quiet --detach "$GITHUB_SHA"
+          git fetch --no-tags https://github.com/driceroland/Search.git refs/heads/main:refs/remotes/upstream/main
+      - name: Test the checker and report missing translations
+        run: |
+          python3 Tests/test_interface_drift.py
+          base=$(git merge-base refs/remotes/upstream/main refs/remotes/fork/translation)
+          python3 Tests/interface_drift.py "$base" refs/remotes/upstream/main refs/remotes/fork/translation
