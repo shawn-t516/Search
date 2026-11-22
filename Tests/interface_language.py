@@ -24,6 +24,12 @@ def check(language, tabs, back, bookmarks, new_tab, page):
             raise AssertionError(f"{language}: search://settings/privacy")
         matches = sv.cmd({"do": "settings", "find": page})["found"]
         assert any(item["page"] == "privacy" for item in matches), (language, matches)
+        for words, setting in (("Prevent cross-site tracking", "sites.keep"), ("Sec-GPC: 1", "privacy.gpc")):
+            matches = sv.cmd({"do": "settings", "find": words})["found"]
+            assert any(item["id"] == setting for item in matches), (language, matches)
+        for words, setting in (("防止跨網站追蹤", "sites.keep"), ("將 Search 設為", "general.default")):
+            matches = sv.cmd({"do": "settings", "find": words})["found"]
+            assert any(item["id"] == setting for item in matches) == language.startswith("zh"), (language, matches)
     finally:
         sv.finish()
     print(language, "OK")
