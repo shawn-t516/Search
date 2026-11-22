@@ -1574,7 +1574,7 @@ final class Bench {
                 _ = browser.bookmarks.add(url, title: tab.title)
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                let menu = NSApp.mainMenu?.items.first { $0.title == "Bookmarks" }?.submenu
+                let menu = BookmarkMenu.shared.menu
                 if let menu { menu.delegate?.menuNeedsUpdate?(menu) }
                 answer(["kept": browser.pageKept,
                         "items": menu?.items.prefix(2).map(\.title) ?? [],
@@ -1989,7 +1989,7 @@ final class Bench {
                 ["folder": folder.title, "items": BookmarkMenu.shared.walk(folder).map { line($0.depth, $0.item) }]
             }
             var menu: [[String: Any]] = []
-            if let main = NSApp.mainMenu?.items.first(where: { $0.title == "Bookmarks" })?.submenu {
+            if let main = BookmarkMenu.shared.menu {
                 main.delegate?.menuNeedsUpdate?(main)
                 func down(_ items: [NSMenuItem], _ depth: Int) {
                     for item in items where item.tag == 0x5EAC && !item.isSeparatorItem {
@@ -2418,7 +2418,7 @@ final class Bench {
             // first folder opened — then what each holds. Only on a
             // SEARCH_PROBE run; nothing is drawn.
             guard Store.testing else { answer(["error": "menu only works on a --test run"]); return }
-            guard let main = NSApp.mainMenu, let menu = main.items.first(where: { $0.title == "Bookmarks" })?.submenu
+            guard let main = NSApp.mainMenu, let menu = BookmarkMenu.shared.menu
             else { answer(["error": "no Bookmarks menu"]); return }
             // "peek": only what is in it now, nothing opened or filled — to
             // see what an update while it is open left of the bookmarks.
@@ -3156,8 +3156,8 @@ final class Bench {
             view?.delegate?.menuNeedsUpdate?(view!)
             view?.update()
             // ⌘[ and ⌘] as this keyboard types them, beside which the two sit.
-            let tabsMenu = NSApp.mainMenu?.items.first(where: { $0.title == "Tabs" })?.submenu
-            let brackets = ["Back", "Forward"].map { title in tabsMenu?.items.first { $0.title == title }?.keyEquivalent ?? "" }
+            let tabsMenu = NSApp.mainMenu?.items.first(where: { $0.title == Interface.text("Tabs") })?.submenu
+            let brackets = ["Back", "Forward"].map { title in tabsMenu?.items.first { $0.title == Interface.text(title) }?.keyEquivalent ?? "" }
             answer(["viewItems": items(view), "spaceItems": items(SpaceMenu.menu(for: browser)), "brackets": brackets,
                     "on": browser.prefs.usesTabGroups, "groups": browser.tabGroups.map { group in
                 ["id": String(group.id.uuidString.prefix(8)).lowercased(), "name": group.name, "collapsed": group.collapsed,

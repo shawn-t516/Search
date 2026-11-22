@@ -645,7 +645,7 @@ enum SettingsIndex {
         return items
             .filter { item in
                 let group = SettingsIndex.group(item.group)
-                let hay = ([item.title, item.detail, item.more ?? "", group?.title ?? "", item.page.title]
+                let hay = ([item.title, item.detail, item.more ?? "", group?.title ?? "", item.page.title, item.page.localizedTitle]
                     + item.words + item.keys).joined(separator: " ").lowercased()
                 return words.allSatisfy { hay.contains($0) }
             }

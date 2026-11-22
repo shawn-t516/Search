@@ -46,6 +46,8 @@ struct SettingsPanel: View {
     enum Page: String, CaseIterable, Identifiable {
         case general, appearance, tabs, browsing, spaces, passwords, privacy, ai, extensions, keyboard, about
         var id: String { rawValue }
+        private static let localizedTitles = Dictionary(uniqueKeysWithValues: allCases.map { ($0, Interface.text($0.title)) })
+        var localizedTitle: String { Self.localizedTitles[self] ?? title }
         var title: String {
             switch self {
             case .general: return "General"
@@ -163,7 +165,7 @@ struct SettingsPanel: View {
     private var pages: some View {
         let counts = Dictionary(grouping: hits, by: \.page).mapValues(\.count)
         return VStack(alignment: .leading, spacing: 2) {
-            Text("Settings")
+            Text(Interface.text("Settings"))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Palette.ink)
                 .padding(.horizontal, 10)
@@ -213,14 +215,14 @@ struct SettingsPanel: View {
                     .foregroundStyle(Palette.muted)
                 ZStack(alignment: .leading) {
                     if text.isEmpty {
-                        Text("Find a setting").foregroundStyle(Palette.muted.opacity(0.8))
+                        Text(Interface.text("Find a setting")).foregroundStyle(Palette.muted.opacity(0.8))
                     }
                     TextField("", text: $text)
                         .textFieldStyle(.plain)
                         .foregroundStyle(Palette.ink)
                         .focused(focus)
                         .onExitCommand { text = "" }
-                        .accessibilityLabel("Find a setting")
+                        .accessibilityLabel(Interface.text("Find a setting"))
                 }
                 .font(.system(size: 12.5))
                 if text.isEmpty {
@@ -258,7 +260,7 @@ struct SettingsPanel: View {
                     Image(systemName: page.icon)
                         .font(.system(size: 12, weight: .medium))
                         .frame(width: 16)
-                    Text(page.title)
+                    Text(page.localizedTitle)
                         .font(.system(size: 13, weight: on ? .medium : .regular))
                     Spacer(minLength: 0)
                     if let count, count > 0 {
@@ -303,7 +305,7 @@ struct SettingsPanel: View {
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(Palette.ink)
                 }
-                Text(searching ? "Settings matching “\(query.trimmingCharacters(in: .whitespaces))”" : page.title)
+                Text(searching ? "Settings matching “\(query.trimmingCharacters(in: .whitespaces))”" : page.localizedTitle)
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(Palette.ink)
                     .lineLimit(1)
@@ -424,7 +426,7 @@ struct SettingsPanel: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: group.icon).font(.system(size: 10.5, weight: .medium))
-                        Text("\(group.page.title)  ›  \(group.title)".uppercased())
+                        Text("\(group.page.localizedTitle)  ›  \(group.title)".uppercased())
                             .font(.system(size: 10.5, weight: .semibold))
                             .tracking(0.4)
                         Image(systemName: "arrow.right").font(.system(size: 9, weight: .semibold)).opacity(0.6)
@@ -434,7 +436,7 @@ struct SettingsPanel: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help("Open \(group.page.title) at \(group.title)")
+                .help("Open \(group.page.localizedTitle) at \(group.title)")
                 Card { rows(byGroup[group.id] ?? [], searched: true) }
             }
         }
